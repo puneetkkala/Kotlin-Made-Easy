@@ -1,27 +1,39 @@
 package com.kalapuneet.kme
 
-class Guard {
-    private lateinit var e: Throwable
+import android.util.Log
 
-    operator fun invoke(body: () -> Guard): Guard {
-        return try {
-            body()
+class Guard {
+    private lateinit var fail: (e: Throwable) -> Unit
+    private lateinit var alw: () -> Unit
+
+    operator fun invoke(guard: () -> Unit) {
+        try {
+            guard.invoke()
         } catch (e: Throwable) {
-            this.e = e
             e.printStackTrace()
-            failure()
+            if (::fail.isInitialized) {
+                fail.invoke(e)
+            } else {
+                Log.e("Guard", "Fail is not initialized")
+                return
+            }
         } finally {
-            always()
+            if (::alw.isInitialized) {
+                alw.invoke()
+            } else {
+                Log.e("Guard", "Alw is not initialized")
+            }
         }
     }
 
-    fun failure(body: (e: Throwable) -> Unit = {}): Guard {
-        body(e)
+    fun failure(body: (e: Throwable) -> Unit): Guard {
+        this.fail = body
         return this
     }
 
-    fun always(body: () -> Unit = {}) {
-        body()
+    fun always(body: () -> Unit): Guard {
+        this.alw = body
+        return this
     }
 }
 
